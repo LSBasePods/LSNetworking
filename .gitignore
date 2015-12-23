@@ -1,0 +1,17 @@
+.DS_Store
+*.swp
+.idea/
+build/
+*.pbxuser
+*.perspective
+*.perspectivev3
+xcuserdata
+*.mode1v3
+*.mode2v3
+*.svn.*
+LSNetworking.xcodeproj/xcshareddata/xcschemes
+LSNetworking.xcodeproj/project.xcworkspace/xcshareddata/
+LSNetworking.xcworkspace/xcuserdata/
+xcshareddata
+Podfile.lock
+Pods

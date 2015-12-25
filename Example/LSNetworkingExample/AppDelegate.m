@@ -20,35 +20,12 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
-//    NSOperationQueue *opq = [[NSOperationQueue alloc] init];
-//    
-//    NSOperation *op = [[NSOperation alloc] init];
-//    
-//    
-//    NSLog(@"%lu ",(unsigned long)opq.operationCount);
-//    
-//    [opq addOperation:op];
-//    
-//    NSLog(@"%lu ",(unsigned long)opq.operationCount);
-//    
-//    [opq addOperation:op];
-//    
-//    NSLog(@"%lu ",(unsigned long)opq.operationCount);
-//    
-//    [opq addOperation:op];
-    
-    
-
-    
-
-    
-    
     [self configNetwork];
     
     TestRequest *testRequest = [TestRequest new];
     testRequest.keyword = @"lalla";
     [testRequest startWithComplete:^(LSResponse *response, NSError *error) {
-        NSLog(@"!!!!");
+        NSLog(@"%@",response.responseString);
     }];
     
     return YES;

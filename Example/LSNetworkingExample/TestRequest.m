@@ -13,7 +13,7 @@
 
 - (NSString *)methodName
 {
-    return @"search";
+    return @"good/info/";
 }
 
 - (LSRequestHTTPMethodType)httpMethod
@@ -23,13 +23,9 @@
 
 - (NSDictionary *)requestParams
 {
-    NSMutableDictionary *params = [NSMutableDictionary new];
-    
-    if (self.keyword.length) {
-        [params setValue:self.keyword forKey:@"wd"];
-    }
-    
-    return params;
+    return @{
+                @"gid":@"5"
+             };
 }
 
 @end

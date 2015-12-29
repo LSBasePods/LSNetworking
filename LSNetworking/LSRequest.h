@@ -24,6 +24,7 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
 
 @property (nonatomic, copy) NSDictionary *requestParams; //!< 请求参数，
 @property (nonatomic, copy) NSDictionary *userInfo;     //!< 用于变量的传递
+@property (nonatomic, copy) NSString *customUrl;        //!< 定制的URL
 @property (nonatomic, copy) Class customServiceClass;      //!< 自定义Service，不设定使用默认的Service
 
 - (NSDictionary *)mockReturnDic;//!< mock API Return ，用于mock借口出来以前，本地定义
@@ -113,7 +114,6 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
  *  @return 具体描述
  */
 - (NSString *)getLocalizedDescriptionWithStatusCode:(NSInteger)statusCode;
-
 
 #pragma mark Methods For Subclasses to Overwritte
 // LSRequestConfigProtocol Methods

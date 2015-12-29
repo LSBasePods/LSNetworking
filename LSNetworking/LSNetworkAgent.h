@@ -35,6 +35,7 @@ typedef NS_ENUM(NSUInteger, LKNetworkDetailStatus)
 - (void)cancelRequest:(NSNumber *)requestID;
 - (void)cancelAllRequest;
 
+- (NSURLRequest *)generateURLRequest:(LSRequest *)request;
 - (NSURLRequest *)generateRequestWithURL:(NSString *)url serializerType:(LSRequestSerializerType)serializerType HTTPMethod:(LSRequestHTTPMethodType)HTTPMethod httpHeader:(NSDictionary *)httpHeader requestParams:(NSDictionary *)requestParams;
 
 @end

@@ -280,7 +280,14 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 
 - (NSString *)buildRequestUrl:(LSRequest *)request
 {
-    NSString *url = [NSString stringWithFormat:@"%@%@%@",request.serviceConfig.serviceDomain,request.serviceConfig.serviceName,request.methodName];
+    NSString *url = nil;
+    
+    if (request.customUrl.length > 0) {
+        url = request.customUrl;
+    } else {
+        url = [NSString stringWithFormat:@"%@%@%@",request.serviceConfig.serviceDomain,request.serviceConfig.serviceName,request.methodName];
+    }
+    
     if (url.length == 0) {
         NSLog(@"serviceConfig is nil");
     }

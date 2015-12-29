@@ -19,9 +19,11 @@
 
 @implementation LSRequest
 
-@synthesize requestParams;
-@synthesize userInfo;
+@synthesize requestParams = _requestParams;
+@synthesize userInfo = _userInfo;
 @synthesize serviceConfig = _serviceConfig;
+@synthesize customUrl = _customUrl;
+@synthesize customServiceClass = _customServiceClass;
 
 #pragma mark - Public Method
 

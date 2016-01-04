@@ -53,12 +53,11 @@
     [signParams addEntriesFromDictionary:signature.requestParams];
     
     NSString *sig = [self getSigWithValueSortWithParams:signParams secret:signature.secret];
-    
-    [signParams setValue:sig forKey:@"sign"];
-    signature.requestParams = signParams;
-    
+
+    NSMutableDictionary *newParams = [signature.requestParams mutableCopy];
+    [newParams setValue:sig forKey:@"sign"];
+    signature.requestParams = newParams;
     NSLog(@"request sign %@",sig);
-    
 }
 
 

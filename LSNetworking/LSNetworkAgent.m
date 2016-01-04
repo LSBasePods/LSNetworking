@@ -7,8 +7,8 @@
 //
 
 #import "LSNetworkAgent.h"
-#import "AFHTTPRequestOperationManager.h"
 #import "LSAPISignatureManager.h"
+#import "AFURLSessionManager.h"
 
 static NSTimeInterval kLSNetworkingTimeoutSeconds = 20.0f;
 
@@ -34,8 +34,8 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 
 @interface LSNetworkAgent()
 
-@property (nonatomic, strong) AFHTTPRequestOperationManager *operationManager;
-@property (nonatomic, strong) NSMutableDictionary *requestOperationRecord;
+@property (nonatomic, strong) AFURLSessionManager *manager;
+@property (nonatomic, strong) NSMutableDictionary *requestTaskRecord;
 
 @property (nonatomic, strong) AFHTTPRequestSerializer *httpRequestSerializer;
 @property (nonatomic, strong) AFJSONRequestSerializer *JSONRequestSerializer;
@@ -57,85 +57,101 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     return sharedInstance;
 }
 
+- (NSDictionary *)commonDicWithCustomDic:(NSDictionary *)customDic origCommonDic:(NSDictionary *)origCommonDic
+{
+    NSMutableDictionary *commonParams = [origCommonDic mutableCopy];
+    [commonParams enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+        id value = customDic[key];
+        if (value) {
+            [commonParams setValue:key forKey:key];
+        }
+    }];
+    return [commonParams copy];
+}
+
+- (NSDictionary *)httpParamsWithRequestParams:(NSDictionary *)requestParams commonParams:(NSDictionary *)commonParams
+{
+    NSMutableDictionary *httpParams = [NSMutableDictionary dictionary];
+    [httpParams addEntriesFromDictionary:[self commonDicWithCustomDic:requestParams origCommonDic:commonParams]];
+    [httpParams addEntriesFromDictionary:requestParams];
+    return httpParams;
+}
+
 - (NSNumber *)startRequest:(LSRequest *)request complete:(LSRequestComplete)complete
 {
-    // 首先 检查参数
+    // 首先 检查参数 是否合法
     if (![self checkRequestParams:request complete:complete]) {
         return nil;
     }
     
+    LSResponse *myResponse = [LSResponse new];
     //  创建请求
-    NSNumber *requestId = [self generateRequestId];
-
-    LSResponse *response = [LSResponse new];
-    response.requestId = requestId;
     NSURLRequest *urlRequest = [self generateURLRequest:request];
     __weak __typeof(self)weakSelf = self;
-    AFHTTPRequestOperation *httpRequestOperation = [self.operationManager HTTPRequestOperationWithRequest:urlRequest success:^(AFHTTPRequestOperation *operation, id responseObject) {
-        // 成功返回
+    NSURLSessionDataTask *dataTask = [self.manager dataTaskWithRequest:urlRequest uploadProgress:0 downloadProgress:0 completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (![strongSelf isCanceled:requestId]) {
-            [strongSelf removeOperationForRequest:requestId];
-            response.userInfo = operation.userInfo;
-            response.responseString = operation.responseString;
-            
-            // 针对 Response String 进行结果处理
-            if (![strongSelf handleSuccessResponse:response forRequest:request complete:complete]) {
-                return ;
-            }
-            
-            response.responseStatusCode = LSResponseStatusCodeSuccess;
-            complete ? complete(response, nil) : nil;
+        myResponse.responseString = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
+        if (responseObject) {
+            myResponse.responseString = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
         }
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        // 请求错误
-        __strong __typeof(weakSelf)strongSelf = weakSelf;
-        [strongSelf removeOperationForRequest:requestId];
-        if (![strongSelf isCanceled:requestId]) {
-            response.responseStatusCode = LSResponseStatusCodeErrorRequest;
-            if (operation.response) {
-                response.responseString = operation.responseString;
-                response.requestStatusCode = operation.response.statusCode;
-            } else {
-                response.requestStatusCode = error.code;//kCFURLErrorTimedOut
+        //TODO User Info
+        
+        if (error) {
+            // 请求错误
+            if (![strongSelf isRequestCanceled:myResponse.requestId]) {
+                myResponse.responseStatusCode = LSResponseStatusCodeErrorRequest;
+                myResponse.requestStatusCode = error.code;//kCFURLErrorTimedOut
+
+                NSString *message = nil;
+                message = [request.serviceConfig getHttpMessageWithResponse:myResponse];
+                if (message.length == 0) {
+                    message = [request getLocalizedDescriptionWithStatusCode:myResponse.requestStatusCode];
+                }
+                myResponse.message = message;
+                
+                complete ? complete(myResponse, error) : nil;
             }
-            response.userInfo = operation.userInfo;
-            
-            NSString *message = nil;
-            message = [request.serviceConfig getHttpMessageWithResponse:response];
-            if (message.length == 0) {
-                message = [request getLocalizedDescriptionWithStatusCode:response.requestStatusCode];
+        } else {
+            // 成功返回
+            if (![strongSelf isRequestCanceled:myResponse.requestId]) {
+                myResponse.returnObject = responseObject;
+    
+                // 针对 Response Object 进行结果处理
+                if (![strongSelf handleSuccessResponse:myResponse forRequest:request complete:complete]) {
+                    return ;
+                }
+    
+                myResponse.responseStatusCode = LSResponseStatusCodeSuccess;
+                complete ? complete(myResponse, nil) : nil;
             }
-            response.message = message;
-            
-            complete ? complete(response, error) : nil;
         }
+        [self removeRequestTask:myResponse.requestId];
     }];
     
-    httpRequestOperation.userInfo = request.userInfo;
-    [self addOperation:httpRequestOperation forRequest:requestId];
-    [[self.operationManager operationQueue] addOperation:httpRequestOperation];
+    myResponse.requestId = @(dataTask.taskIdentifier);
+    [dataTask resume];
+    [self addRequestTask:dataTask];
     
-    return requestId;
+    return @(dataTask.taskIdentifier);
 }
 
 - (void)cancelRequest:(NSNumber *)requestId
 {
-    AFHTTPRequestOperation *requestOperation = self.requestOperationRecord[requestId];
-    [requestOperation cancel];
-    [self removeOperationForRequest:requestId];
+    NSURLSessionDataTask *dataTask = self.requestTaskRecord[requestId];
+    [dataTask cancel];
+    [self removeRequestTask:requestId];
 }
 
 - (void)cancelAllRequest
 {
-    for (NSNumber *requestId in self.requestOperationRecord.allKeys) {
+    for (NSNumber *requestId in self.requestTaskRecord.allKeys) {
         [self cancelRequest:requestId];
     }
 }
 
 - (BOOL)isRequestLoading:(NSNumber *)requestId
 {
-    if ([self.requestOperationRecord.allKeys containsObject:requestId]) {
+    if ([self.requestTaskRecord.allKeys containsObject:requestId]) {
         return YES;
     }
     return NO;
@@ -238,44 +254,32 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 
 #pragma mark - Privite
 
-// 根据请求ID 判断请求是否被取消
-- (BOOL)isCanceled:(NSNumber *)requestId
+// 根据requestId 判断请求是否被取消
+- (BOOL)isRequestCanceled:(NSNumber *)requestId
 {
-    return !self.requestOperationRecord[requestId];
+    if (!requestId) {
+        return YES;
+    }
+    return !self.requestTaskRecord[requestId];
 }
 
 // 创建请求时， 向字典中添加记录
-- (void)addOperation:(AFHTTPRequestOperation *)opertation forRequest:(NSNumber *)requestId
+- (void)addRequestTask:(NSURLSessionDataTask *)dataTask
 {
+    if (!dataTask) {
+        return;
+    }
     @synchronized(self) {
-        self.requestOperationRecord[requestId] = opertation;
+        [self.requestTaskRecord setObject:dataTask forKey:@(dataTask.taskIdentifier)];
     }
 }
 
 // 请求完成、取消时， 从字典中移除记录
-- (void)removeOperationForRequest:(NSNumber *)requestId
+- (void)removeRequestTask:(NSNumber *)requestId
 {
-    if (!requestId) {
-        return;
-    }
     @synchronized(self) {
-        [self.requestOperationRecord removeObjectForKey:requestId];
+        [self.requestTaskRecord removeObjectForKey:requestId];
     }
-}
-
-- (NSNumber *)generateRequestId
-{
-    static NSNumber *requestId = nil;
-    if (requestId == nil) {
-        requestId = @(1);
-    } else {
-        if ([requestId integerValue] == NSIntegerMax) {
-            requestId = @(1);
-        } else {
-            requestId = @([requestId integerValue] + 1);
-        }
-    }
-    return requestId;
 }
 
 - (NSString *)buildRequestUrl:(LSRequest *)request
@@ -296,41 +300,31 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 
 - (NSURLRequest *)generateURLRequest:(LSRequest *)request
 {
-    NSString *url = [self buildRequestUrl:request];
-    LSRequestSerializerType contentType = request.serviceConfig.serializerType;
-    LSRequestHTTPMethodType httpMethod = request.httpMethod;
-    NSDictionary *httpHeader = request.serviceConfig.commHeader;
-    NSString *privateKey = request.serviceConfig.privateKey;
-    NSDictionary *requestParams = request.requestParams;
-    NSMutableDictionary *commParams = [request.serviceConfig.commParams mutableCopy];
-    
-    //实现apiParams的键值对覆盖commParams的键值对
-    [commParams enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-        id value = requestParams[key];
-        if (value) {
-            [commParams setValue:value forKey:key];
-        }
-    }];
-    
+    // 签名
     LSAPIServiceSignatureObject *signature = [LSAPIServiceSignatureObject new];
-    signature.url = url;
-    signature.commParams = commParams;
-    signature.requestParams = requestParams;
-    signature.secret = privateKey;
-    signature.httpMethod = httpMethod;
-    signature.serializerType = contentType;
+    signature.url = [self buildRequestUrl:request];
+    signature.commParams = [self commonDicWithCustomDic:request.requestParams origCommonDic:request.serviceConfig.commParams];
+    signature.requestParams = request.requestParams;
+    signature.secret = request.serviceConfig.privateKey;
+    signature.httpMethod = request.httpMethod;
+    signature.serializerType = request.serviceConfig.serializerType;
+    //TODO 优化规则
     if ([request.serviceConfig respondsToSelector:@selector(signatureType)] && [request.serviceConfig signatureType]!=LSRequestSignaturetypeCustomConfig) {
-        [LSAPISignatureManager generateSigWithObject:signature type:[request.serviceConfig signatureType]];
+        [LSAPISignatureManager handleObject:signature signatureType:[request.serviceConfig signatureType]];
     } else if ([request.serviceConfig respondsToSelector:@selector(customSignatureWithObject:)]) {
         [request.serviceConfig customSignatureWithObject:signature];
-    } else {
-        NSMutableDictionary *temp = [NSMutableDictionary dictionary];
-        [temp addEntriesFromDictionary:commParams];
-        [temp addEntriesFromDictionary:requestParams];
-        signature.requestParams = temp;
     }
     
-    return [self generateRequestWithURL:signature.url serializerType:signature.serializerType HTTPMethod:httpMethod httpHeader:httpHeader requestParams:signature.requestParams];
+    //TODO if api need server username and password
+    
+    // 各种参数
+    LSRequestHTTPMethodType httpMethod = request.httpMethod;
+    NSString *httpUrl = signature.url;
+    LSRequestSerializerType httpSerializerType = signature.serializerType;
+    NSDictionary *httpHeader = [self httpParamsWithRequestParams:request.requestHeader commonParams:request.serviceConfig.commHeader];
+    NSDictionary *httpParams = [self httpParamsWithRequestParams:signature.requestParams commonParams:signature.commParams];
+    
+    return [self generateRequestWithURL:httpUrl serializerType:httpSerializerType HTTPMethod:httpMethod httpHeader:httpHeader requestParams:httpParams];
 }
 
 - (NSURLRequest *)generateRequestWithURL:(NSString *)url serializerType:(LSRequestSerializerType)serializerType HTTPMethod:(LSRequestHTTPMethodType)HTTPMethod httpHeader:(NSDictionary *)httpHeader requestParams:(NSDictionary *)requestParams
@@ -435,7 +429,12 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         response.requestStatusCode = LSResponseStatusCodeSuccess;
         response.returnObject = request.mockReturnDic;
     } else {
-        NSData *jsonData = [response.responseString dataUsingEncoding:NSUTF8StringEncoding];
+        NSData *jsonData = nil;
+        if ([response.returnObject isKindOfClass:[NSData class]]) {
+            jsonData = response.returnObject;
+        } else {
+            jsonData = [response.responseString dataUsingEncoding:NSUTF8StringEncoding];
+        }
         id jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
         retunObject = jsonObject;
     }
@@ -476,23 +475,22 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 
 #pragma mark - init
 
-- (AFHTTPRequestOperationManager *)operationManager
+- (AFURLSessionManager *)manager
 {
-    if (_operationManager == nil) {
-        _operationManager = [[AFHTTPRequestOperationManager alloc] initWithBaseURL:nil];
-        _operationManager.responseSerializer.acceptableStatusCodes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(100, 500)];
-        _operationManager.responseSerializer = [AFHTTPResponseSerializer serializer];
-        _operationManager.operationQueue.maxConcurrentOperationCount = 4;
+    if (!_manager) {
+        _manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+        _manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+        _manager.operationQueue.maxConcurrentOperationCount = 4;
     }
-    return _operationManager;
+    return _manager;
 }
 
-- (NSMutableDictionary *)requestOperationRecord
+- (NSMutableDictionary *)requestTaskRecord
 {
-    if (!_requestOperationRecord) {
-        _requestOperationRecord = [[NSMutableDictionary alloc] init];
+    if (!_requestTaskRecord) {
+        _requestTaskRecord = [[NSMutableDictionary alloc] init];
     }
-    return _requestOperationRecord;
+    return _requestTaskRecord;
 }
 
 - (AFHTTPRequestSerializer *)httpRequestSerializer

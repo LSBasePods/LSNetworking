@@ -20,7 +20,7 @@ typedef NS_ENUM(NSUInteger, LSRequestSignatureType)
 
 @interface LSAPISignatureManager : NSObject
 
-+ (void)generateSigWithObject:(LSAPIServiceSignatureObject *)object type:(LSRequestSignatureType)type;
++ (void)handleObject:(LSAPIServiceSignatureObject *)object signatureType:(LSRequestSignatureType)type;
 + (NSString *)getSigWithValueSortWithParams:(NSDictionary *)params secret:(NSString *)secret;
 
 @end

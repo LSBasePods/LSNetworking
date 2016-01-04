@@ -23,6 +23,7 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
 @optional
 
 @property (nonatomic, copy) NSDictionary *requestParams; //!< 请求参数，
+@property (nonatomic, copy) NSDictionary *requestHeader; //!< 请求Header
 @property (nonatomic, copy) NSDictionary *userInfo;     //!< 用于变量的传递
 @property (nonatomic, copy) NSString *customUrl;        //!< 定制的URL
 @property (nonatomic, copy) Class customServiceClass;      //!< 自定义Service，不设定使用默认的Service

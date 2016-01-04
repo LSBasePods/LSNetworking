@@ -20,7 +20,7 @@
 
 @implementation LSAPISignatureManager
 
-+ (void)generateSigWithObject:(LSAPIServiceSignatureObject *)object type:(LSRequestSignatureType)type
++ (void)handleObject:(LSAPIServiceSignatureObject *)object signatureType:(LSRequestSignatureType)type
 {
     switch (type) {
         case LSRequestSignatureTypeSortValue:

@@ -89,6 +89,11 @@
     return @"";
 }
 
+- (NSDictionary *)requestHeader
+{
+    return nil;
+}
+
 # pragma mark - Private Method
 
 

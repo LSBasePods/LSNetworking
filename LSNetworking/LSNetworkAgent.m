@@ -94,7 +94,6 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         if (responseObject) {
             myResponse.responseString = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
         }
-        //TODO User Info
         
         if (error) {
             // 请求错误
@@ -125,10 +124,12 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
                 complete ? complete(myResponse, nil) : nil;
             }
         }
-        [self removeRequestTask:myResponse.requestId];
+        [strongSelf removeRequestTask:myResponse.requestId];
     }];
     
     myResponse.requestId = @(dataTask.taskIdentifier);
+    myResponse.userInfo = request.userInfo;
+    
     [dataTask resume];
     [self addRequestTask:dataTask];
     
@@ -308,11 +309,13 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     signature.secret = request.serviceConfig.privateKey;
     signature.httpMethod = request.httpMethod;
     signature.serializerType = request.serviceConfig.serializerType;
-    //TODO 优化规则
+    
     if ([request.serviceConfig respondsToSelector:@selector(signatureType)] && [request.serviceConfig signatureType]!=LSRequestSignaturetypeCustomConfig) {
         [LSAPISignatureManager handleObject:signature signatureType:[request.serviceConfig signatureType]];
     } else if ([request.serviceConfig respondsToSelector:@selector(customSignatureWithObject:)]) {
         [request.serviceConfig customSignatureWithObject:signature];
+    } else {
+        NSLog(@"Signature Error: Please implementation the selector customSignatureWithObject: in the subclass of LSService");
     }
     
     //TODO if api need server username and password

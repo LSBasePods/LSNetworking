@@ -114,12 +114,12 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
             // 成功返回
             if (![strongSelf isRequestCanceled:myResponse.requestId]) {
                 myResponse.returnObject = responseObject;
-    
+                
                 // 针对 Response Object 进行结果处理
                 if (![strongSelf handleSuccessResponse:myResponse forRequest:request complete:complete]) {
                     return ;
                 }
-    
+                
                 myResponse.responseStatusCode = LSResponseStatusCodeSuccess;
                 complete ? complete(myResponse, nil) : nil;
             }
@@ -430,7 +430,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     
     if ([request respondsToSelector:@selector(mockReturnDic)] && request.mockReturnDic) {
         response.requestStatusCode = LSResponseStatusCodeSuccess;
-        response.returnObject = request.mockReturnDic;
+        retunObject = request.mockReturnDic;
     } else {
         NSData *jsonData = nil;
         if ([response.returnObject isKindOfClass:[NSData class]]) {

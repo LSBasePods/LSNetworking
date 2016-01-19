@@ -6,15 +6,6 @@ Pod::Spec.new do |s|
   s.version      = "0.0.1"
   s.summary      = "A short description of LSNetworking."
 
-  s.description  = <<-DESC
-                   A longer description of LSNetworking in Markdown format.
-
-                   * Think: Why did you write this? What is the focus? What does it do?
-                   * CocoaPods will be using this to generate tags, and improve search results.
-                   * Try to keep it short, snappy and to the point.
-                   * Finally, don't worry about the indent, CocoaPods strips it!
-                   DESC
-
   s.homepage     = git_source
   s.license      = "MIT (example)"
 
@@ -28,6 +19,12 @@ Pod::Spec.new do |s|
 
   s.requires_arc = true
 
-  s.source_files = '*/{LS}*.{h,m}','*/{AF}*.{h,m}'
+  s.subspec 'AFNetworking' do |ss|
+    ss.source_files = 'AFNetworking/*.{h,m}'
+  end
+
+  s.subspec 'LSNetworking' do |ss|
+    ss.source_files = 'LSNetworking/*.{h,m}'
+  end
 
 end

@@ -116,12 +116,10 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
                 myResponse.returnObject = responseObject;
                 
                 // 针对 Response Object 进行结果处理
-                if (![strongSelf handleSuccessResponse:myResponse forRequest:request complete:complete]) {
-                    return ;
-                }
+                NSError *error = nil;
                 
-                myResponse.responseStatusCode = LSResponseStatusCodeSuccess;
-                complete ? complete(myResponse, nil) : nil;
+                [strongSelf handleSuccessResponse:myResponse error:error forRequest:request];
+                complete ? complete(myResponse, error) : nil;
             }
         }
         [strongSelf removeRequestTask:myResponse.requestId];
@@ -413,23 +411,20 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 }
 
 /**
- *  根据 responseString 处理返回结果
+ *  处理 Http 请求成功返回的结果
  *
  *  @param response
+ *  @param error
  *  @param request
- *  @param complete 用来出错后在方法内调用错误回调
  *
  *  @return 处理成功，返回YES；否则返回 NO
  */
-- (BOOL)handleSuccessResponse:(LSResponse *)response forRequest:(LSRequest *)request complete:(LSRequestComplete)complete
+- (BOOL)handleSuccessResponse:(LSResponse *)response error:(NSError *)error forRequest:(LSRequest *)request
 {
-    NSError *error;
-    
     // 转换成字典  或者 mock
     id retunObject = nil;
     
     if ([request respondsToSelector:@selector(mockReturnDic)] && request.mockReturnDic) {
-        response.requestStatusCode = LSResponseStatusCodeSuccess;
         retunObject = request.mockReturnDic;
     } else {
         NSData *jsonData = nil;
@@ -444,8 +439,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     if (!retunObject) {
         response.responseStatusCode = LSResponseStatusCodeErrorJSON;
         response.message = [request getLocalizedDescriptionWithStatusCode:response.responseStatusCode];
-        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorParam userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
-        complete ? complete(response, error) : nil;
+        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorJSON userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
         return NO;
     }
     response.returnObject = retunObject;
@@ -454,8 +448,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     if (![request.serviceConfig checkReturnStructure:response]) {
         response.responseStatusCode = LSResponseStatusCodeErrorFormat;
         response.message = [request getLocalizedDescriptionWithStatusCode:response.responseStatusCode];
-        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorParam userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
-        complete ? complete(response, error) : nil;
+        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorFormat userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
         return NO;
     }
     
@@ -463,8 +456,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     if ([request respondsToSelector:@selector(checkResponse:)] && ![request checkResponse:response]) {
         response.responseStatusCode = LSResponseStatusCodeErrorReturn;
         response.message = [request getLocalizedDescriptionWithStatusCode:response.responseStatusCode];
-        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorParam userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
-        complete ? complete(response, error) : nil;
+        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorReturn userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
         return NO;
     }
     
@@ -473,6 +465,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         response.returnObject = [request modelMappingFromReturnDic:retunObject];
     }
     
+    response.responseStatusCode = LSResponseStatusCodeSuccess;
     return YES;
 }
 

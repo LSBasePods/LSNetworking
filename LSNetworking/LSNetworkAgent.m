@@ -85,40 +85,50 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     }
     
     LSResponse *myResponse = [LSResponse new];
+    
+    // 检查是否有 mockReturn
+    if ([request respondsToSelector:@selector(mockReturnDic)] && request.mockReturnDic) {
+        
+        myResponse.returnObject = request.mockReturnDic;
+        
+        // 模拟请求过程,延迟 2s 回调
+        __weak __typeof(self)weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            __strong __typeof(weakSelf)strongSelf = weakSelf;
+            NSError *error = nil;
+            [strongSelf handleSuccessResponse:myResponse error:&error forRequest:request];
+            complete ? complete(myResponse, error) : nil;
+        });
+        
+        // mock 的 requestId 一律为 -1
+        return @(-1);
+    }
+    
     //  创建请求
     NSURLRequest *urlRequest = [self generateURLRequest:request];
     __weak __typeof(self)weakSelf = self;
     NSURLSessionDataTask *dataTask = [self.manager dataTaskWithRequest:urlRequest uploadProgress:0 downloadProgress:0 completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         myResponse.responseString = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
-        if (responseObject) {
-            myResponse.responseString = [[NSString alloc] initWithData:responseObject encoding:NSUTF8StringEncoding];
-        }
         
         if (error) {
-            // 请求错误
+            // http 请求错误
             if (![strongSelf isRequestCanceled:myResponse.requestId]) {
+                
+                myResponse.requestStatusCode = error.code;
                 myResponse.responseStatusCode = LSResponseStatusCodeErrorRequest;
-                myResponse.requestStatusCode = error.code;//kCFURLErrorTimedOut
-
-                NSString *message = nil;
-                message = [request.serviceConfig getHttpMessageWithResponse:myResponse];
-                if (message.length == 0) {
-                    message = [request getLocalizedDescriptionWithStatusCode:myResponse.requestStatusCode];
-                }
-                myResponse.message = message;
+                myResponse.message = [request.serviceConfig getHttpMessageWithResponse:myResponse];
                 
                 complete ? complete(myResponse, error) : nil;
             }
         } else {
-            // 成功返回
+            // http 请求成功
             if (![strongSelf isRequestCanceled:myResponse.requestId]) {
+                
                 myResponse.returnObject = responseObject;
                 
-                // 针对 Response Object 进行结果处理
                 NSError *error = nil;
-                
-                [strongSelf handleSuccessResponse:myResponse error:error forRequest:request];
+                [strongSelf handleSuccessResponse:myResponse error:&error forRequest:request];
                 complete ? complete(myResponse, error) : nil;
             }
         }
@@ -131,7 +141,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     [dataTask resume];
     [self addRequestTask:dataTask];
     
-    return @(dataTask.taskIdentifier);
+    return myResponse.requestId;
 }
 
 - (void)cancelRequest:(NSNumber *)requestId
@@ -403,7 +413,8 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         LSResponse *response = [LSResponse new];
         response.responseStatusCode = LSResponseStatusCodeErrorParam;
         response.message = paramsErrorMsg;
-        NSError *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorParam userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
+        NSError *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorParam userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
+
         complete ? complete(response, error) : nil;
         return 0;
     }
@@ -419,13 +430,13 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
  *
  *  @return 处理成功，返回YES；否则返回 NO
  */
-- (BOOL)handleSuccessResponse:(LSResponse *)response error:(NSError *)error forRequest:(LSRequest *)request
+- (BOOL)handleSuccessResponse:(LSResponse *)response error:(NSError **)error forRequest:(LSRequest *)request
 {
     // 转换成字典  或者 mock
     id retunObject = nil;
     
-    if ([request respondsToSelector:@selector(mockReturnDic)] && request.mockReturnDic) {
-        retunObject = request.mockReturnDic;
+    if ([response.returnObject isKindOfClass:[NSDictionary class]]) {
+        retunObject = response.returnObject;
     } else {
         NSData *jsonData = nil;
         if ([response.returnObject isKindOfClass:[NSData class]]) {
@@ -433,30 +444,28 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         } else {
             jsonData = [response.responseString dataUsingEncoding:NSUTF8StringEncoding];
         }
-        id jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+        id jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:error];
         retunObject = jsonObject;
     }
     if (!retunObject) {
         response.responseStatusCode = LSResponseStatusCodeErrorJSON;
-        response.message = [request getLocalizedDescriptionWithStatusCode:response.responseStatusCode];
-        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorJSON userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
+        *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:response.responseStatusCode userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
         return NO;
     }
+    
     response.returnObject = retunObject;
     
-    // 检查数据结构
+    // 检查数据结构是否符合规范
     if (![request.serviceConfig checkReturnStructure:response]) {
         response.responseStatusCode = LSResponseStatusCodeErrorFormat;
-        response.message = [request getLocalizedDescriptionWithStatusCode:response.responseStatusCode];
-        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorFormat userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
+        *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:response.responseStatusCode userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
         return NO;
     }
     
-    // 检查返回结果
+    // 检查返回结果是否符合业务
     if ([request respondsToSelector:@selector(checkResponse:)] && ![request checkResponse:response]) {
         response.responseStatusCode = LSResponseStatusCodeErrorReturn;
-        response.message = [request getLocalizedDescriptionWithStatusCode:response.responseStatusCode];
-        error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorReturn userInfo:[NSDictionary dictionaryWithObject:[request getLocalizedDescriptionWithStatusCode:response.responseStatusCode] forKey:NSLocalizedDescriptionKey]];
+        *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:response.responseStatusCode userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
         return NO;
     }
     

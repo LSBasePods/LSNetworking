@@ -28,4 +28,14 @@
              };
 }
 
+//- (NSDictionary *)mockReturnDic
+//{
+//    return @{
+//        @"code":@200,
+//        @"result":@{
+//                @"message":@" This is mock return "
+//            }
+//        };
+//}
+
 @end

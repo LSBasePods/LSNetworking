@@ -47,38 +47,6 @@
     return [[LSNetworkAgent sharedInstance] isRequestLoading:requestId];
 }
 
-- (NSString *)getLocalizedDescriptionWithStatusCode:(NSInteger)statusCode
-{
-    switch (statusCode) {
-        case LSResponseStatusCodeErrorParam:
-            return @"请求参数错误";
-            break;
-        case LSResponseStatusCodeErrorRequest:
-            return @"Http 请求错误";
-            break;
-
-        case LSResponseStatusCodeErrorJSON:
-            return @"返回结果不是JSON 格式";
-            break;
-        case LSResponseStatusCodeErrorFormat:
-            return @"返回的JSON格式不符合约定";
-            break;
-        case LSResponseStatusCodeErrorReturn:
-            return @"服务器返回的业务错误";
-            break;
-        case LSResponseStatusCodeSuccess:
-            return @"请求成功";
-            break;
-
-
-        default:
-            return @"未定义";
-            break;
-    }
-
-    return @"";
-}
-
 - (LSRequestHTTPMethodType)httpMethod
 {
     return 0;
@@ -93,10 +61,6 @@
 {
     return nil;
 }
-
-# pragma mark - Private Method
-
-
 
 #pragma mark - Property Getter & Setter
 
@@ -122,4 +86,44 @@
 @end
 
 @implementation LSResponse
+
+- (NSString *)message
+{
+    if (!_message) {
+        return [self getLocalizedDescriptionWithStatusCode:self.responseStatusCode];
+    }
+    return _message;
+}
+
+- (NSString *)getLocalizedDescriptionWithStatusCode:(NSInteger)statusCode
+{
+    switch (statusCode) {
+        case LSResponseStatusCodeErrorParam:
+            return @"请求参数错误";
+            break;
+        case LSResponseStatusCodeErrorRequest:
+            return @"Http 请求错误";
+            break;
+        case LSResponseStatusCodeErrorJSON:
+            return @"返回结果不是JSON 格式";
+            break;
+        case LSResponseStatusCodeErrorFormat:
+            return @"返回的JSON格式不符合约定";
+            break;
+        case LSResponseStatusCodeErrorReturn:
+            return @"服务器返回的业务错误";
+            break;
+        case LSResponseStatusCodeSuccess:
+            return @"请求成功";
+            break;
+            
+        default:
+            return @"未定义";
+            break;
+    }
+    
+    return 0;
+}
+
+
 @end

@@ -66,12 +66,6 @@
     return YES;
 }
 
-
-- (NSString *)getHttpMessageWithResponse:(LSResponse *)response
-{
-    return nil;
-}
-
 - (NSString *)getSigWithValueSortWithParams:(NSDictionary *)params secret:(NSString *)secret
 {
     NSString *sig = @"";

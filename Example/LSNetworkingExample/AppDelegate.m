@@ -25,7 +25,8 @@
     TestRequest *testRequest = [TestRequest new];
     testRequest.keyword = @"lalla";
     [testRequest startWithComplete:^(LSResponse *response, NSError *error) {
-        NSLog(@"%@",response.responseString);
+        NSLog(@"%@",response.returnObject);
+        NSLog(@"%@",error);
     }];
     
     return YES;

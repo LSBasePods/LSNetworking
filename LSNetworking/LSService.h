@@ -16,6 +16,15 @@
 @property (nonatomic, copy) NSString *serviceDomain; //!< 服务的域, 默认返回 defaultServiceDomain
 @property (nonatomic, copy) NSString *serviceName;  //!< 服务名称, 默认返回 defaultServiceName
 
+/**
+ *  自定义网络层错误信息，兼容后台某些框架，某些错误无法进入业务层
+ *
+ *  @param response 返回值
+ *
+ *  @return 错误信息， 如果没有错误返回nil
+ */
+- (NSString *)getHttpMessageWithResponse:(LSResponse *)response;
+
 #pragma mark - For Subclasses Overwritte
 @property (nonatomic, copy) NSDictionary *commParams; //!< 共用参数信息
 @property (nonatomic, copy) NSDictionary *commHeader; //!< 共用header信息
@@ -45,14 +54,5 @@
  *  @return 是否符合之前的确定
  */
 - (BOOL)checkReturnStructure:(LSResponse *)response;
-
-/**
- *  自定义网络层错误信息
- *
- *  @param response 返回值
- *
- *  @return 错误信息， 如果没有错误返回nil
- */
-- (NSString *)getHttpMessageWithResponse:(LSResponse *)response;
 
 @end

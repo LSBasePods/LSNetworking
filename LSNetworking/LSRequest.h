@@ -71,8 +71,7 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
 @property (nonatomic, strong, readonly) NSNumber *lastRequestId;
 @property (nonatomic, strong, readonly) LSService *serviceConfig;
 
-@property (nonatomic, copy) Class customServiceClass;
-
+@property (nonatomic, copy) Class customServiceClass; //!< 使用自定义的服务
 
 #pragma mark - Public Methods
 
@@ -97,7 +96,6 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
  */
 - (void)cancelAll;
 
-
 /**
  *  判断request是否正在加载
  *
@@ -106,15 +104,6 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
  *  @return 如果正在加载返回YES，否则返回NO
  */
 - (BOOL)isLoading:(NSNumber *)requestId;
-
-/**
- *  根据statusCode获取具体描述
- *
- *  @param statusCode  状态码
- *
- *  @return 具体描述
- */
-- (NSString *)getLocalizedDescriptionWithStatusCode:(NSInteger)statusCode;
 
 #pragma mark Methods For Subclasses to Overwritte
 // LSRequestConfigProtocol Methods
@@ -127,11 +116,8 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
 @property (nonatomic, strong) NSNumber *requestId;
 @property (nonatomic, strong) NSDictionary *userInfo;
 
-///Error codes for CFURLConnection and CFURLProtocol e.g.: kCFURLErrorTimedOut , LSResponseStatusCode = LSResponseStatusCodeErrorRequest时起作用
-@property (nonatomic, assign) NSInteger requestStatusCode;
-@property (nonatomic, assign) LSResponseStatusCode responseStatusCode;
-
-@property (nonatomic, assign) NSUInteger *code;
+@property (nonatomic, assign) NSInteger requestStatusCode; //!< Error codes for CFURLConnection e.g.:kCFURLErrorTimedOut
+@property (nonatomic, assign) LSResponseStatusCode responseStatusCode; //!< LSNetworking 处理状态码
 @property (nonatomic, copy) NSString *message;
 @property (nonatomic, copy) NSString *responseString;
 @property (nonatomic, strong) id returnObject;

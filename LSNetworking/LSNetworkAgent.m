@@ -471,7 +471,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     
     // 转换成Model
     if ([request respondsToSelector:@selector(modelMappingFromReturnDic:)]) {
-        response.returnObject = [request modelMappingFromReturnDic:retunObject];
+        response.returnObject = [request modelMappingFromReturnDic:response.returnObject];
     }
     
     response.responseStatusCode = LSResponseStatusCodeSuccess;

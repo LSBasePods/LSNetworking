@@ -91,9 +91,9 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         
         myResponse.returnObject = request.mockReturnDic;
         
-        // 模拟请求过程,延迟 2s 回调
+        // 模拟请求过程,延迟 0.5s 回调
         __weak __typeof(self)weakSelf = self;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             __strong __typeof(weakSelf)strongSelf = weakSelf;
             NSError *error = nil;
             [strongSelf handleSuccessResponse:myResponse error:&error forRequest:request];

@@ -13,6 +13,7 @@ typedef NS_ENUM(NSUInteger, LSRequestSignatureType)
 {
     LSRequestSignatureTypeNone = 0,
     LSRequestSignatureTypeSortValue,
+    LSRequestSignatureTypeSortKeyValue,
     LSRequestSignaturetypeCustomConfig
 };
 

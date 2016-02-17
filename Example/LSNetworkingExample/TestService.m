@@ -61,9 +61,9 @@
 }
 
 
-- (BOOL)checkReturnStructure:(LSResponse *)response
+- (NSError *)checkReturnStructure:(LSResponse *)response
 {
-    return YES;
+    return nil;
 }
 
 - (NSString *)getSigWithValueSortWithParams:(NSDictionary *)params secret:(NSString *)secret

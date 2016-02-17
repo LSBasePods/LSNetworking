@@ -21,9 +21,9 @@
     return @"";
 }
 
-- (BOOL)checkReturnStructure:(LSResponse *)response
+- (NSError *)checkReturnStructure:(LSResponse *)response
 {
-    return YES;
+    return nil;
 }
 
 - (NSString *)getHttpMessageWithResponse:(LSResponse *)response

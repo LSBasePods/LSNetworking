@@ -41,9 +41,9 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
  *
  *  @param params 上传的参数
  *
- *  @return 错误信息 如果正确，返回nil
+ *  @return error 如为nil则为真确的
  */
-- (NSString *)checkRequestParam:(NSDictionary *)params;
+- (NSError *)checkRequestParam:(NSDictionary *)params;
 
 /**
  *  可用来APIManager成功会回去数据后的回调，检查返回的数据的是否正确
@@ -51,9 +51,9 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
  *
  *  @param response 可以在这里对response的内容进行修改
  *
- *  @return 是否符合之前的约定
+ *  @return error 如为nil则为真确的
  */
-- (BOOL)checkResponse:(LSResponse *)response;
+- (NSError *)checkResponse:(LSResponse *)response;
 
 /**
  *  API返回格式正确，转换成model

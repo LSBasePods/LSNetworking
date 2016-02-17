@@ -408,15 +408,13 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         return YES;
     }
     
-    NSString *paramsErrorMsg = [request checkRequestParam:request.requestParams];
-    if (paramsErrorMsg.length) {
+    NSError *error = [request checkRequestParam:request.requestParams];
+    if (error) {
         LSResponse *response = [LSResponse new];
         response.responseStatusCode = LSResponseStatusCodeErrorParam;
-        response.message = paramsErrorMsg;
-        NSError *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:LSResponseStatusCodeErrorParam userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
-
+        response.message = error.localizedDescription;
         complete ? complete(response, error) : nil;
-        return 0;
+        return NO;
     }
     return YES;
 }
@@ -456,17 +454,21 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     response.returnObject = retunObject;
     
     // 检查数据结构是否符合规范
-    if (![request.serviceConfig checkReturnStructure:response]) {
-        response.responseStatusCode = LSResponseStatusCodeErrorFormat;
-        *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:response.responseStatusCode userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
+    NSError *serviceError = [request.serviceConfig checkReturnStructure:response];
+    if (serviceError) {
+        *error = serviceError;
         return NO;
     }
     
     // 检查返回结果是否符合业务
-    if ([request respondsToSelector:@selector(checkResponse:)] && ![request checkResponse:response]) {
-        response.responseStatusCode = LSResponseStatusCodeErrorReturn;
-        *error = [NSError errorWithDomain:LSNetworkingErrorDomain code:response.responseStatusCode userInfo:[NSDictionary dictionaryWithObject:response.message forKey:NSLocalizedDescriptionKey]];
-        return NO;
+    if ([request respondsToSelector:@selector(checkResponse:)]) {
+        NSError *requestError = [request checkResponse:response];
+        if (requestError) {
+            response.responseStatusCode = LSResponseStatusCodeErrorReturn;
+            response.message = requestError.localizedDescription;
+            *error = requestError;
+            return NO;
+        }
     }
     
     // 转换成Model

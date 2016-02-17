@@ -51,8 +51,8 @@
  *
  *  @param data 返回的数据字典
  *
- *  @return 是否符合之前的确定
+ *  @return error 为nil正确的
  */
-- (BOOL)checkReturnStructure:(LSResponse *)response;
+- (NSError *)checkReturnStructure:(LSResponse *)response;
 
 @end

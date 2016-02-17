@@ -309,11 +309,17 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
 
 - (NSURLRequest *)generateURLRequest:(LSRequest *)request
 {
+    NSDictionary *requestParams = request.requestParams;
+    NSDictionary *commParams = request.serviceConfig.commParams;
+    if (request.serviceConfig.delEmptyParams) {
+        requestParams = [self delEmptyStringWithDic:requestParams];
+        commParams = [self delEmptyStringWithDic:commParams];
+    }
     // 签名
     LSAPIServiceSignatureObject *signature = [LSAPIServiceSignatureObject new];
     signature.url = [self buildRequestUrl:request];
-    signature.commParams = [self commonDicWithCustomDic:request.requestParams origCommonDic:request.serviceConfig.commParams];
-    signature.requestParams = request.requestParams;
+    signature.commParams = [self commonDicWithCustomDic:requestParams origCommonDic:commParams];
+    signature.requestParams = requestParams;
     signature.secret = request.serviceConfig.privateKey;
     signature.httpMethod = request.httpMethod;
     signature.serializerType = request.serviceConfig.serializerType;
@@ -478,6 +484,21 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     
     response.responseStatusCode = LSResponseStatusCodeSuccess;
     return YES;
+}
+
+- (NSDictionary *)delEmptyStringWithDic:(NSDictionary *)dic
+{
+    NSMutableDictionary *temp = [NSMutableDictionary dictionaryWithDictionary:dic];
+    NSArray *allKeys = [dic allKeys];
+    [allKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        id value = dic[obj];
+        if (!value) {
+            [temp removeObjectForKey:obj];
+        } else if ([value isKindOfClass:[NSString class]] && [(NSString *)value length] == 0 ) {
+            [temp removeObjectForKey:obj];
+        }
+    }];
+    return temp;
 }
 
 #pragma mark - init

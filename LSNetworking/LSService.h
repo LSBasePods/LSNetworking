@@ -26,11 +26,12 @@
 - (NSString *)getHttpMessageWithResponse:(LSResponse *)response;
 
 #pragma mark - For Subclasses Overwritte
-@property (nonatomic, copy) NSDictionary *commParams; //!< 共用参数信息
-@property (nonatomic, copy) NSDictionary *commHeader; //!< 共用header信息
-@property (nonatomic, copy) NSString *privateKey; //!< 加密的私钥
-@property (nonatomic, copy) NSString *NSLocalizedFileName; //!< 指定本地化语言文件 (不包括后缀名.strings)
-@property (nonatomic, assign) LSRequestSerializerType serializerType; // HTTP协议 的序列化方式
+@property (nonatomic, assign) BOOL delEmptyParams;                          //!< 是否提出空字符串
+@property (nonatomic, copy) NSDictionary *commParams;                       //!< 共用参数信息
+@property (nonatomic, copy) NSDictionary *commHeader;                       //!< 共用header信息
+@property (nonatomic, copy) NSString *privateKey;                           //!< 加密的私钥
+@property (nonatomic, copy) NSString *NSLocalizedFileName;                  //!< 指定本地化语言文件 (不包括后缀名.strings)
+@property (nonatomic, assign) LSRequestSerializerType serializerType;       // HTTP协议 的序列化方式
 
 - (NSString *)defaultServiceDomain; //!< 线上服务地址,serviceDomain的默认值
 - (NSString *)defaultServiceName;  //!<  线上服务名称,serviceName的默认值

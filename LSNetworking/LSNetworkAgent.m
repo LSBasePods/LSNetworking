@@ -492,7 +492,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     NSArray *allKeys = [dic allKeys];
     [allKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         id value = dic[obj];
-        if (!value) {
+        if (!value || [value isEqual:[NSNull null]]) {
             [temp removeObjectForKey:obj];
         } else if ([value isKindOfClass:[NSString class]] && [(NSString *)value length] == 0 ) {
             [temp removeObjectForKey:obj];

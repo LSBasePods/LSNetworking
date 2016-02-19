@@ -53,7 +53,7 @@
             [params setValue:sig forKey:@"sign"];
             object.commParams = params;
             
-            NSURLRequest *request = [[LSNetworkAgent sharedInstance] generateRequestWithURL:object.url serializerType:object.serializerType HTTPMethod:LSRequestHTTPMethodGET httpHeader:nil requestParams:object.commParams];
+            NSURLRequest *request = [[LSNetworkAgent sharedInstance] generateRequestWithURL:object.url serializerType:object.serializerType HTTPMethod:object.httpMethod httpHeader:nil requestParams:object.commParams];
             NSString *url = request.URL.absoluteString;
             object.url = url;
             

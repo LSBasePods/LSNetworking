@@ -40,23 +40,16 @@
             NSURLRequest *request = [[LSNetworkAgent sharedInstance] generateRequestWithURL:object.url serializerType:object.serializerType HTTPMethod:LSRequestHTTPMethodGET httpHeader:nil requestParams:object.commParams];
             NSString *url = request.URL.absoluteString;
             object.url = url;
-            
         }
             break;
         case LSRequestSignatureTypeSortKeyValue:
         {
-            
             NSMutableDictionary *signParams = [NSMutableDictionary dictionaryWithDictionary:object.commParams];
             [signParams addEntriesFromDictionary:object.requestParams];
             NSString *sig = [LSAPISignatureManager getSigWithKeyValueSortWithParams:signParams secret:object.secret];
             NSMutableDictionary *params = [NSMutableDictionary dictionaryWithDictionary:object.commParams];
             [params setValue:sig forKey:@"sign"];
             object.commParams = params;
-            
-            NSURLRequest *request = [[LSNetworkAgent sharedInstance] generateRequestWithURL:object.url serializerType:object.serializerType HTTPMethod:object.httpMethod httpHeader:nil requestParams:object.commParams];
-            NSString *url = request.URL.absoluteString;
-            object.url = url;
-            
         }
             break;
         default:

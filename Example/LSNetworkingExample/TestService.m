@@ -44,7 +44,7 @@
 
 - (LSRequestSignatureType)signatureType
 {
-    return LSRequestSignaturetypeCustomConfig;
+    return LSRequestSignatureTypeSortKeyValue;
 }
 
 - (void)customSignatureWithObject:(LSAPIServiceSignatureObject *)signature

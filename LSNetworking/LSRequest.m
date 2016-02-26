@@ -87,16 +87,6 @@
 
 @implementation LSResponse
 
-- (NSString *)message
-{
-#ifndef DEBUG
-    if (!_message) {
-        return [self getLocalizedDescriptionWithStatusCode:self.responseStatusCode];
-    }
-#endif
-    return _message;
-}
-
 - (NSString *)getLocalizedDescriptionWithStatusCode:(NSInteger)statusCode
 {
     switch (statusCode) {

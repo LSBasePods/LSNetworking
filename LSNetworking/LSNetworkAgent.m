@@ -463,7 +463,6 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     NSError *serviceError = [request.serviceConfig checkReturnStructure:response];
     if (serviceError) {
         *error = serviceError;
-        return NO;
     }
     
     // 检查返回结果是否符合业务
@@ -473,13 +472,16 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
             response.responseStatusCode = LSResponseStatusCodeErrorReturn;
             response.message = requestError.localizedDescription;
             *error = requestError;
-            return NO;
         }
     }
     
     // 转换成Model
     if ([request respondsToSelector:@selector(modelMappingFromReturnDic:)]) {
         response.returnObject = [request modelMappingFromReturnDic:response.returnObject];
+    }
+    
+    if (!*error) {
+        response.responseStatusCode = LSResponseStatusCodeSuccess;
     }
     
     response.responseStatusCode = LSResponseStatusCodeSuccess;

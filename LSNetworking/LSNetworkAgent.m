@@ -462,6 +462,7 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
     // 检查数据结构是否符合规范
     NSError *serviceError = [request.serviceConfig checkReturnStructure:response];
     if (serviceError) {
+        response.responseStatusCode = LSResponseStatusCodeErrorFormat;
         *error = serviceError;
     }
     
@@ -480,12 +481,13 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         response.returnObject = [request modelMappingFromReturnDic:response.returnObject];
     }
     
+    // 没有发生错误，返回成功
     if (!*error) {
         response.responseStatusCode = LSResponseStatusCodeSuccess;
+        return YES;
     }
     
-    response.responseStatusCode = LSResponseStatusCodeSuccess;
-    return YES;
+    return NO;
 }
 
 - (NSDictionary *)delEmptyStringWithDic:(NSDictionary *)dic

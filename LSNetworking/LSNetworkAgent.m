@@ -101,6 +101,9 @@ static inline NSString * LSRequestHTTPMethod(LSRequestHTTPMethodType type) {
         });
         
         // mock 的 requestId 一律为 -1
+        myResponse.requestId = @(-1);
+        myResponse.userInfo = request.userInfo;
+
         return @(-1);
     }
     

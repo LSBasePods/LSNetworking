@@ -113,7 +113,7 @@ typedef void(^LSRequestComplete)(LSResponse *response, NSError *error);
 
 @interface LSResponse : NSObject
 
-@property (nonatomic, strong) NSNumber *requestId;
+@property (nonatomic, strong) NSNumber *requestId;  //!< -1 是mock Request id
 @property (nonatomic, strong) NSDictionary *userInfo;
 
 @property (nonatomic, assign) NSInteger requestStatusCode; //!< Error codes for CFURLConnection e.g.:kCFURLErrorTimedOut
